@@ -1,0 +1,31 @@
+struct Person {
+    int age, height;
+	struct TEST {};
+};
+
+int main() {
+    int x = 5;
+	char y = +"5";
+	short int xyz = &123--;
+	long int abc = ++1111;
+	if (xyz * abc) {a.b.c = *a + !b;}
+	Person asd;
+	if () {
+		y = 4++; 
+		asd.x = y
+	}
+	{{{}}}
+	else {
+		y = 3; 
+		if (y >= y) {
+			int z = x * x;
+			z = y + z;
+			y = z - x;
+			c = 5 / z;
+			struct TEST {
+				int a;
+				TEST test;
+			};
+		}
+	}
+}
