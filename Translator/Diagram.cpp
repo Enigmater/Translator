@@ -3,127 +3,125 @@
 void Diagram::Z()
 {
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
+	int t = lookForward(1);
 	while (t == TConst || t == TStruct || t == TInt || t == TShort || t == TLong || t == TChar) {
-		sc->SetUK(uk);
 		C();
-		uk = sc->GetUK();
-		t = sc->Scan(l);
+		t = lookForward(1);
 	}
 }
 
 void Diagram::C()
 {
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
-	sc->SetUK(uk);
-	if (t == TConst || t == TStruct) V();
+	int t = lookForward(2);
+	if (t != TMain) V();
 	else {
 		B();
 		t = sc->Scan(l);
 		if (t != TMain) sc->PrintError("Ожидалось KEYWORD main", l);
+		Tree* v = root->SemInclude(l, TYPE_UNKNOWN, TYPE_FUNC);
 		t = sc->Scan(l);
 		if (t != TLS) sc->PrintError("Ожидался знак (", l);
 		t = sc->Scan(l);
 		if (t != TRS) sc->PrintError("Ожидался знак )", l);
+		
 		F();
+		root->SetCurr(v);
 	}
 }
 
-void Diagram::V()
+void Diagram::V(OBJECT_TYPE ot)
 {
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
-	sc->SetUK(uk);
-	if (t == TStruct) A();
+	int t = lookForward(1);
+	if (t == TStruct) A(ot);
 	else {
+		bool isConst = false;
 		if (t == TConst) {
 			sc->Scan(l);
-		};
-		B();
+			isConst = true;
+		}
+
+		DATA_TYPE dt = B();	// get data type
 		do {
 			t = sc->Scan(l);
 			if (t != TIdent) sc->PrintError("Ожидался идентификатор", l);
 			
-			uk = sc->GetUK();
-			t = sc->Scan(l);
+			Tree* v = root->SemInclude(l, dt, ot); // new row in table with type dt
+			v->setConst(isConst); // set const flag
 
-			if (t == TSave) T();
-			else sc->SetUK(uk);
-
+			bool isInit = false;
+			if (lookForward(1) == TSave) {
+				t = sc->Scan(l);
+				T(); // TODO: check save types (lr 9)
+				isInit = true; 
+			}
+			v->setInit(isInit); // set init flag
 			t = sc->Scan(l);
 		} while (t == TZpt);
 		if (t != TTZpt) sc->PrintError("Ожидался знак ;", l);
-
 	}
 	
 }
 
-void Diagram::B()
+DATA_TYPE Diagram::B()
 {
 	TypeLex l;
-	int t, uk;
-	t = sc->Scan(l);
+	int t = sc->Scan(l);
 	if (t == TShort || t == TLong) {
+		int prevT = t;
 		t = sc->Scan(l);
-		if (t != TInt) sc->PrintError("Ожидался тип", l);
+		if (t != TInt) sc->PrintError("Ожидался тип SHORT INT или LONG INT", l);
+
+		if (prevT == TShort) return TYPE_SHORTINT;
+		else return TYPE_LONGINT;
 	}
-	else if (t != TInt && 
-		t != TChar && 
-		t != TIdent) sc->PrintError("Ожидался тип", l);
+	else if (t == TInt) return TYPE_INTEGER;
+	else if (t == TChar) return TYPE_CHAR;
+	else if (t == TIdent) return TYPE_STRUCTTYPE;
+	else sc->PrintError("Ожидался тип", l);
 }
 
-void Diagram::A()
+void Diagram::A(OBJECT_TYPE ot)
 {
 	TypeLex l;
-	int t, uk;
-	t = sc->Scan(l);
+	int t = sc->Scan(l);
 	if (t != TStruct) sc->PrintError("Ожидалось KEYWORD struct", l);
 	t = sc->Scan(l);
 	if (t != TIdent) sc->PrintError("Ожидался идентификатор структуры", l);
+
+	OBJECT_TYPE otype = ot == TYPE_VAR ? TYPE_STRUCT : TYPE_STRUCTFIELD; // if struct is field of other struct
+	Tree* v = root->SemInclude(l, TYPE_STRUCTTYPE, otype);
+	 
 	t = sc->Scan(l);
 	if (t != TTZpt) {
 		if (t != TFLS) sc->PrintError("Ожидался знак {", l);
-		uk = sc->GetUK();
-		t = sc->Scan(l);
-		while (t != TFRS) {
-			sc->SetUK(uk);
-			V();
-			uk = sc->GetUK();
-			t = sc->Scan(l);
-		}
-		t = sc->Scan(l);
+		while (lookForward(1) != TFRS) V(TYPE_STRUCTFIELD);	 // add fields to struct
+		
+		t = sc->Scan(l); // scan }
+		t = sc->Scan(l); // scan ;
 		if (t != TTZpt) sc->PrintError("Ожидался знак ;", l);
 	}
+	root->SetCurr(v);
 }
-
 
 void Diagram::F()
 {
 	TypeLex l;
-	int t, uk;
 	// {
-	t = sc->Scan(l);
+	int t = sc->Scan(l);
 	if (t != TFLS) sc->PrintError("Ожидался знак {", l);
+	Tree* temp = root->SemIncludeBlock();
 	// Body
-	uk = sc->GetUK();
-	t = sc->Scan(l);
-	sc->SetUK(uk);
+	t = lookForward(1);
 	while (t != TFRS) {
  		if (t == TConst || t == TStruct || t == TInt || t == TShort || t == TLong || t == TChar || 
 			(t == TIdent && lookForward(2) == TIdent)) V();
 		else G();
-		uk = sc->GetUK();
-		t = sc->Scan(l);
-		sc->SetUK(uk);
+		t = lookForward(1);
 	}
 	// }
+	root->SetCurr(temp);
 	t = sc->Scan(l);
 	if (t != TFRS) sc->PrintError("Ожидался знак }", l);
 }
@@ -131,9 +129,7 @@ void Diagram::F()
 void Diagram::G()
 {
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
+	int uk = sc->GetUK(), t = sc->Scan(l);
 	if (t == TTZpt) return;
 	else if (t == TIF) {
 		t = sc->Scan(l);
@@ -142,19 +138,23 @@ void Diagram::G()
 		t = sc->Scan(l);
 		if (t != TRS) sc->PrintError("Ожидался знак )", l);
 		F();
-		uk = sc->GetUK();
-		t = sc->Scan(l);
-		if (t == TElse) F();
-		else sc->SetUK(uk);
+		if (lookForward(1) == TElse) {
+			t = sc->Scan(l);
+			F();
+		}
 	}
 	else if (t == TReturn) {
 		T();
 	}
 	else if (t == TIdent) {
+		
+		root->CheckVisibility(l);
+		
 		t = sc->Scan(l);
 		while (t == TToch) {
 			t = sc->Scan(l);
 			if (t != TIdent) sc->PrintError("Ожидася идентификатор (поле структуры)", l);
+			root->CheckStructAccess(l);
 			t = sc->Scan(l);
 		}
 		if (t != TSave) sc->PrintError("Ожидался оператор =", l);
@@ -170,71 +170,56 @@ void Diagram::T()
 {
 	Y();
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
+	int t = lookForward(1);
 	while (t == TEQ || t == TNEQ) {
-		Y();
-		uk = sc->GetUK();
 		t = sc->Scan(l);
+		Y();
+		t = lookForward(1);
 	}
-	sc->SetUK(uk);
 }
 
 void Diagram::Y()
 {
 	U();
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
+	int t = lookForward(1);
 	while (t >= TLT && t <= TGE)  {
-		U();
-		uk = sc->GetUK();
 		t = sc->Scan(l);
+		U();
+		t = lookForward(1);
 	}
-	sc->SetUK(uk);
 }
 
 void Diagram::U()
 {
 	I();
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
+	int t = lookForward(1);
 	while (t == TPlus || t == TMinus) {
-		I();
-		uk = sc->GetUK();
 		t = sc->Scan(l);
+		I();
+		t = lookForward(1);
 	}
-	sc->SetUK(uk);
 }
 
 void Diagram::I()
 {
 	O();
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
+	int t = lookForward(1);
 	while (t == TMult || t == TDiv || t == TMod) {
-		O();
-		uk = sc->GetUK();
 		t = sc->Scan(l);
+		O();
+		t = lookForward(1);
 	}
-	sc->SetUK(uk);
 }
 
 void Diagram::O()
 {
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
-	if (t != TNOT && t != TAmper && t != TPlus && t != TMinus && t != TMult) sc->SetUK(uk);
+	int t = lookForward(1);
+	if (t == TNOT || t == TAmper || t == TPlus || t == TMinus || t == TMult) t = sc->Scan(l);
 	P();
-	
 }
 
 void Diagram::P()
@@ -251,31 +236,20 @@ void Diagram::P()
 void Diagram::EL()
 {
 	TypeLex l;
-	int t, uk;
-	uk = sc->GetUK();
-	t = sc->Scan(l);
+	int t = sc->Scan(l);
 
 	if (t == TLS) {
 		T();
-		uk = sc->GetUK();
-		t = sc->Scan(l);
-		if (t != TRS) sc->PrintError("Ожидался знак )", l);
+		if (lookForward(1) != TRS) sc->PrintError("Ожидался знак )", l);
 	}
 	else if (t == TIdent) {
-		uk = sc->GetUK();
-		t = sc->Scan(l);
-		while (t == TToch) {
+		while (lookForward(1) == TToch) {
 			t = sc->Scan(l);
-			if (t != TIdent) sc->PrintError("Ожидася идентификатор (", l);
-			uk = sc->GetUK();
 			t = sc->Scan(l);
+			if (t != TIdent) sc->PrintError("Ожидася идентификатор", l);
 		}
 	}
-	else if (t == TConstInt || t == TConstChar) {
-		return;
-	}
-	else sc->PrintError("Выражение не верно", l);
-	sc->SetUK(uk);
+	else if (t != TConstInt && t != TConstChar) sc->PrintError("Выражение не верно", l);
 }
 
 int Diagram::lookForward(int steps)

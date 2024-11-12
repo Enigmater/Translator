@@ -28,7 +28,8 @@ int Scanner::GetUK()
 void Scanner::PrintError(const char* err, const char* a)
 {
 	cout << "Error: " << err;
-	if (a[0] != '\0') cout << " Wrong character: " << a << endl;
+	if (a[0] != '\0') cout << " -> Wrong character: " << a << endl;
+	throw("Fatal error!");
 	exit(0);
 }
 

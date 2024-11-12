@@ -5,12 +5,14 @@ struct Person {
 
 int main() {
     int x = 5;
-	char y = +"5";
-	short int xyz = &123--;
-	long int abc = ++1111;
-	if (xyz * abc) {a.b.c = *a + !b;}
+	char y = "5";
+	short int xyz = 123;
+	long int abc = 1111;
+	if (xyz * abc) {
+		a.b.c = *a + !b;
+	}
 	Person asd;
-	if () {
+	if (x == 4) {
 		y = 4++; 
 		asd.x = y
 	}
@@ -21,7 +23,7 @@ int main() {
 			int z = x * x;
 			z = y + z;
 			y = z - x;
-			c = 5 / z;
+			int c = 5 / z;
 			struct TEST {
 				int a;
 				TEST test;
