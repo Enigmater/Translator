@@ -35,12 +35,14 @@ int RunDiagram(int argc, char* argv[]) {
 		else sc->PrintError("Лишний текст в конце программы.", "");
 
 		root->Print();
+		delete sc;
+		delete dg;
 	}
 	catch (const char* err) 
 	{
 		delete sc;
 		delete dg;
+		return -1;
 	}
-
 	return 0;
 }

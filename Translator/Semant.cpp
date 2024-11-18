@@ -23,10 +23,9 @@ Tree::Tree()
 
 Tree::~Tree()
 {
-	delete left;
-	delete right;
-	delete up;
-	delete n;
+	if (left) delete left;
+	if (right && n->objectType != TYPE_STRUCTOBJ) delete right;
+	if (n) delete n;
 }
 
 
@@ -42,6 +41,10 @@ void Tree::setInit(bool flag)
 
 char* Tree::getID() {
 	return this->n->id;
+}
+
+bool Tree::getConst() {
+	return n->flagConst;
 }
 
 OBJECT_TYPE Tree::getObjType() {
@@ -139,6 +142,9 @@ Tree* Tree::SemInclude(TypeLex a, DATA_TYPE dt, OBJECT_TYPE ot)
 }
 
 Tree* Tree::SemIncludeStructObj(TypeLex a, Tree* baseStruct) {
+
+	if (CheckUniqueID(a) == -1) sc->PrintError("Объект с таким именем уже существует!", a);
+
 	Node* b = new Node;
 	memcpy(b->id, a, strlen(a) + 1);	// set id
 	b->dataType = TYPE_STRUCTTYPE;		// set data type
@@ -162,7 +168,6 @@ Tree* Tree::SemIncludeRightBlock()
 
 Tree* Tree::SemIncludeLeftBlock()
 {
-	//Tree* returnNode = curr;
 	Node* blockNode = new Node();
 	memcpy(blockNode->id, "Block", 5);
 	curr->SetLeft(blockNode);
@@ -254,8 +259,9 @@ int Tree::CheckStructAccess(Tree* _struct, TypeLex structField)
 	return 0;
 }
 
-int Tree::CheckVisibility(TypeLex a)
+Tree* Tree::CheckVisibility(TypeLex a)
 {
-	if (FindUp(a)) return 0;
+	Tree* v = FindUp(a);
+	if (v) return v;
 	sc->PrintError("Идентификатор не определен!", a);
 }

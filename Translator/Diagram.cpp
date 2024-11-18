@@ -36,6 +36,7 @@ void Diagram::V(OBJECT_TYPE ot)
 	int t = lookForward(1);
 	if (t == TStruct) A(ot);
 	else {
+		/* set const flag */
 		bool isConst = false;
 		if (t == TConst) {
 			sc->Scan(l);
@@ -43,11 +44,12 @@ void Diagram::V(OBJECT_TYPE ot)
 		}
 
 		DATA_TYPE dt;
+		/* if var is struct object */
 		Tree* structName = nullptr;
 		if (lookForward(1) == TIdent) {
 			dt = TYPE_STRUCTTYPE;
 			t = sc->Scan(l);
-			structName = root->SemGetStruct(l);
+			structName = root->SemGetStruct(l);	// if struct isn't exists - error : "Такой структуры не существует!"
 		}
 		else dt = B();	
 		do {
@@ -55,11 +57,11 @@ void Diagram::V(OBJECT_TYPE ot)
 			if (t != TIdent) sc->PrintError("Ожидался идентификатор", l);
 			
 			if (structName != nullptr) {
-				root->SemIncludeStructObj(l, structName);
+				root->SemIncludeStructObj(l, structName); // if object with same name is exists - error : "Объект с таким именем уже существует!"
 				t = sc->Scan(l); // scan ;
 			}
 			else {
-				Tree* v = root->SemInclude(l, dt, ot); // new row in table with type dt
+				Tree* v = root->SemInclude(l, dt, ot);	  // if object with same name is exists - error : "Объект с таким именем уже существует!"
 				v->setConst(isConst); // set const flag
 
 				bool isInit = false;
@@ -162,14 +164,15 @@ void Diagram::G()
 	}
 	else if (t == TIdent) {
 		
-		root->CheckVisibility(l);
+		Tree* v = root->CheckVisibility(l);	// if obj isn't exists - error : "Идентификатор не определен!"	
+		if (v->getConst()) sc->PrintError("Константа не может быть изменена!", l);
 		
 		while (lookForward(1) == TToch) {
-			Tree* structName = root->SemGetStructObject(l);
+			Tree* structName = root->SemGetStructObject(l); // if struct obj isn't exists - error : "Объект структуры не существует!"
 			t = sc->Scan(l);
 			t = sc->Scan(l);
 			if (t != TIdent) sc->PrintError("Ожидася идентификатор (поле структуры)", l);
-			root->CheckStructAccess(structName, l);
+			root->CheckStructAccess(structName, l);			// if field l isn't field of structName - error: "Структура <$structName> не имеет такого поля!"
 		}
 		t = sc->Scan(l);
 		if (t != TSave) sc->PrintError("Ожидался оператор =", l);
@@ -258,11 +261,13 @@ void Diagram::EL()
 		if (lookForward(1) != TRS) sc->PrintError("Ожидался знак )", l);
 	}
 	else if (t == TIdent) {
+		root->CheckVisibility(l);	// if obj isn't exists - error : "Идентификатор не определен!"
 		while (lookForward(1) == TToch) {
-			
+			Tree* structName = root->SemGetStructObject(l); // if struct obj isn't exists - error : "Объект структуры не существует!"
 			t = sc->Scan(l);
 			t = sc->Scan(l);
 			if (t != TIdent) sc->PrintError("Ожидася идентификатор", l);
+			root->CheckStructAccess(structName, l);			// if field l isn't field of structName - error: "Структура <$structName> не имеет такого поля!"
 		}
 	}
 	else if (t != TConstInt && t != TConstChar) sc->PrintError("Выражение не верно", l);

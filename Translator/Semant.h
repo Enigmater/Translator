@@ -36,7 +36,9 @@ public:
 	void setInit(bool flag);
 
 	char* getID();
+	bool getConst();
 	OBJECT_TYPE getObjType();
+	
 
 	// ФУНКЦИИ ОБРАБОТКИ БИНАРНОГО ДЕРЕВА
 	void SetLeft(Node* data);
@@ -67,7 +69,7 @@ public:
 	int CheckEqualityTypes(DATA_TYPE t1, DATA_TYPE t2);			// Проверка типов для операторов сравнения(== , != )
 	int CheckComparisonTypes(DATA_TYPE t1, DATA_TYPE t2);		// Проверка типов для операторов сравнения(> , >= , < , <= )
 	int CheckStructAccess(Tree* _struct, TypeLex structField);// Проверка корректности доступа к элементам структуры
-	int CheckVisibility(TypeLex a);								// Проверка области видимости переменных
-	int CheckInit(TypeLex a);									// Проверка на использования переменных без инициализации
+	Tree* CheckVisibility(TypeLex a);								// Проверка области видимости переменных
+	int CheckConst(TypeLex a);
 
 };

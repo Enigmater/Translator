@@ -1,21 +1,29 @@
-struct    myStruct { int x, y; };
-myStruct  data;    // правильно
-data d;          // ошибка
-struct StructA { int x, y; myStruct xx, yy;};
-struct StructAA { int x, z; StructA xxx,yyy;};
+struct Person {
+	int x;
+    int age, height;
+};
 
-int main () {
-    struct StructA { int xy; data xx, yy;};   // ошибка
-    data.x = 2;      // правильно 
-    myStruct.x = 2;   // ошибка
-    {
-        StructAA a;  
-        {
-              int StructAA = 3;          // правильно в новой области видимости
-              StructAA s, c;             // ошибка
-        }
-        StructAA s, c;                     // правильно
-        int asd = a.xxx.xxx.xxx.xxx;       // ошибка
-     }
-     return myStruct;   // ошибка
+int main() {
+    int x = 5;
+	char y = "5";
+	short int xyz = 123;
+	long int abc = 1111;
+	if (xyz * abc) {
+		x = y + xyz;
+	}
+	Person asd;
+	if (x == 4) {
+		y = 4++; 
+		asd.x= y
+	}
+	{{{}}}
+	else {
+		y = 3; 
+		if (y >= y) {
+			int z = x * x;
+			z = y + z;
+			y = z - x;
+			int c = 5 / z;
+		}
+	}
 }

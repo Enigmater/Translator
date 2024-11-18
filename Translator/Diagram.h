@@ -29,6 +29,8 @@ public:
 	Tree* root;
 	void Z(); // ןנמדנאללא
 	Diagram(Scanner* sc) { this->sc = sc; root = new Tree(); root->setScanner(sc); root->SetCurr(root); }
-	~Diagram() {}
+	~Diagram() {
+		if (root) delete root;
+	}
 };
 
