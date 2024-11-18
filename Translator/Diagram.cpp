@@ -42,22 +42,35 @@ void Diagram::V(OBJECT_TYPE ot)
 			isConst = true;
 		}
 
-		DATA_TYPE dt = B();	// get data type
+		DATA_TYPE dt;
+		Tree* structName = nullptr;
+		if (lookForward(1) == TIdent) {
+			dt = TYPE_STRUCTTYPE;
+			t = sc->Scan(l);
+			structName = root->SemGetStruct(l);
+		}
+		else dt = B();	
 		do {
 			t = sc->Scan(l);
 			if (t != TIdent) sc->PrintError("Ожидался идентификатор", l);
 			
-			Tree* v = root->SemInclude(l, dt, ot); // new row in table with type dt
-			v->setConst(isConst); // set const flag
-
-			bool isInit = false;
-			if (lookForward(1) == TSave) {
-				t = sc->Scan(l);
-				T(); // TODO: check save types (lr 9)
-				isInit = true; 
+			if (structName != nullptr) {
+				root->SemIncludeStructObj(l, structName);
+				t = sc->Scan(l); // scan ;
 			}
-			v->setInit(isInit); // set init flag
-			t = sc->Scan(l);
+			else {
+				Tree* v = root->SemInclude(l, dt, ot); // new row in table with type dt
+				v->setConst(isConst); // set const flag
+
+				bool isInit = false;
+				if (lookForward(1) == TSave) {
+					t = sc->Scan(l);
+					T();
+					isInit = true;
+				}
+				v->setInit(isInit); // set init flag
+				t = sc->Scan(l);
+			}
 		} while (t == TZpt);
 		if (t != TTZpt) sc->PrintError("Ожидался знак ;", l);
 	}
@@ -111,7 +124,8 @@ void Diagram::F()
 	// {
 	int t = sc->Scan(l);
 	if (t != TFLS) sc->PrintError("Ожидался знак {", l);
-	Tree* temp = root->SemIncludeBlock();
+	root->SemIncludeLeftBlock();
+	Tree* temp = root->SemIncludeRightBlock();
 	// Body
 	t = lookForward(1);
 	while (t != TFRS) {
@@ -150,13 +164,14 @@ void Diagram::G()
 		
 		root->CheckVisibility(l);
 		
-		t = sc->Scan(l);
-		while (t == TToch) {
+		while (lookForward(1) == TToch) {
+			Tree* structName = root->SemGetStructObject(l);
+			t = sc->Scan(l);
 			t = sc->Scan(l);
 			if (t != TIdent) sc->PrintError("Ожидася идентификатор (поле структуры)", l);
-			root->CheckStructAccess(l);
-			t = sc->Scan(l);
+			root->CheckStructAccess(structName, l);
 		}
+		t = sc->Scan(l);
 		if (t != TSave) sc->PrintError("Ожидался оператор =", l);
 		T();
 	}
@@ -244,6 +259,7 @@ void Diagram::EL()
 	}
 	else if (t == TIdent) {
 		while (lookForward(1) == TToch) {
+			
 			t = sc->Scan(l);
 			t = sc->Scan(l);
 			if (t != TIdent) sc->PrintError("Ожидася идентификатор", l);

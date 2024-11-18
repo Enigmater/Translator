@@ -1,6 +1,6 @@
 struct Person {
+	int x;
     int age, height;
-	struct TEST {};
 };
 
 int main() {
@@ -9,12 +9,12 @@ int main() {
 	short int xyz = 123;
 	long int abc = 1111;
 	if (xyz * abc) {
-		a.b.c = *a + !b;
+		x = y + xyz;
 	}
 	Person asd;
 	if (x == 4) {
 		y = 4++; 
-		asd.x = y
+		asd1.x1= y
 	}
 	{{{}}}
 	else {
@@ -24,10 +24,6 @@ int main() {
 			z = y + z;
 			y = z - x;
 			int c = 5 / z;
-			struct TEST {
-				int a;
-				TEST test;
-			};
 		}
 	}
 }

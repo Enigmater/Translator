@@ -7,7 +7,7 @@ enum DATA_TYPE {
 	TYPE_SHORTINT, TYPE_LONGINT, TYPE_CHAR, TYPE_STRUCTTYPE
 };
 enum OBJECT_TYPE {
-	TYPE_EMPTY = 0, TYPE_VAR, TYPE_STRUCT, TYPE_STRUCTFIELD, TYPE_FUNC
+	TYPE_EMPTY = 0, TYPE_VAR, TYPE_STRUCT, TYPE_STRUCTOBJ, TYPE_STRUCTFIELD, TYPE_FUNC
 };
 
 struct Node {
@@ -35,6 +35,9 @@ public:
 	void setConst(bool flag);
 	void setInit(bool flag);
 
+	char* getID();
+	OBJECT_TYPE getObjType();
+
 	// ФУНКЦИИ ОБРАБОТКИ БИНАРНОГО ДЕРЕВА
 	void SetLeft(Node* data);
 	void SetRight(Node* data);
@@ -49,17 +52,21 @@ public:
 
 	// СЕМАНТИЧЕСКИЕ ПОДПРОГРАММЫ
 	Tree* SemInclude(TypeLex a, DATA_TYPE dt = TYPE_UNKNOWN, OBJECT_TYPE ot = TYPE_EMPTY);					// Занесение идентификатора a в таблицу с типом t
-	Tree* SemIncludeBlock();
+	Tree* SemIncludeStructObj(TypeLex a, Tree* baseStruct);
+	Tree* SemIncludeRightBlock();
+	Tree* SemIncludeLeftBlock();
 public:
 	void SemSetType(Tree* Addr, DATA_TYPE t);					// Установить тип t для той переменной, которая хранится в таблице по адресу Addr
 	Tree * SemGetNode(TypeLex a);								// Найти в таблице переменную с именем a и вернуть ссылку на соответствующий элемент дерева
+	Tree* SemGetStruct(TypeLex a);
+	Tree* SemGetStructObject(TypeLex a);
 	int CheckUniqueID(TypeLex a);								// Проверка на уникальность имен переменных в одной области видимости
 	int CheckSaveTypes(DATA_TYPE t1, DATA_TYPE t2);				// Проверка совместимости типов при присваивании
 	int CheckSummandTypes(DATA_TYPE t1, DATA_TYPE t2);			// Проверка типов операндов для арифметических операций(сложение, вычитание)
 	int CheckMultiplierTypes(DATA_TYPE t1, DATA_TYPE t2);		// Проверка типов операндов для арифметических операций(умножение, деление, остаток от деления)
 	int CheckEqualityTypes(DATA_TYPE t1, DATA_TYPE t2);			// Проверка типов для операторов сравнения(== , != )
 	int CheckComparisonTypes(DATA_TYPE t1, DATA_TYPE t2);		// Проверка типов для операторов сравнения(> , >= , < , <= )
-	int CheckStructAccess(TypeLex structField);					// Проверка корректности доступа к элементам структуры
+	int CheckStructAccess(Tree* _struct, TypeLex structField);// Проверка корректности доступа к элементам структуры
 	int CheckVisibility(TypeLex a);								// Проверка области видимости переменных
 	int CheckInit(TypeLex a);									// Проверка на использования переменных без инициализации
 

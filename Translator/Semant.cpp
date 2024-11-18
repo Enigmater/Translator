@@ -1,5 +1,7 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "Semant.h"
 #include <iostream>
+
 
 Tree* Tree::curr;
 
@@ -27,6 +29,25 @@ Tree::~Tree()
 	delete n;
 }
 
+
+void Tree::setConst(bool flag)
+{
+	n->flagConst = flag;
+}
+
+void Tree::setInit(bool flag)
+{
+	n->flagInit = flag;
+}
+
+char* Tree::getID() {
+	return this->n->id;
+}
+
+OBJECT_TYPE Tree::getObjType() {
+	return n->objectType;
+}
+
 void Tree::SetLeft(Node* data)
 {
 	left = new Tree(nullptr, nullptr, nullptr, data);
@@ -37,16 +58,6 @@ void Tree::SetRight(Node* data)
 {
 	right = new Tree(nullptr, nullptr, nullptr, data);
 	right->up = this;
-}
-
-void Tree::setConst(bool flag)
-{
-	n->flagConst = flag;
-}
-
-void Tree::setInit(bool flag)
-{
-	n->flagInit = flag;
 }
 
 void Tree::SetCurr(Tree* node)
@@ -77,12 +88,12 @@ Tree* Tree::FindUp(TypeLex id)
 
 Tree* Tree::FindRightLeft(Tree* from, TypeLex id)
 {
-	// Поиск в правом поддереве и затем в левом
-	if (from->right) {
-		Tree* res = FindUp(from->right, id);
-		if (res) return res;
+	Tree* i = from->right;
+	while (i != nullptr) {
+		if (!strcmp(id, i->n->id)) return i;
+		i = i->left;
 	}
-	return FindUp(from->left, id);
+	return nullptr;
 }
 
 Tree* Tree::FindRightLeft(TypeLex id)
@@ -96,7 +107,8 @@ void Tree::Print()
 	if (left != nullptr) std::cout << " слева данные " << left->n->id;
 	if (right != nullptr) std::cout << " справа данные " << right->n->id;
 	std::cout << "\n";
-	if (right != nullptr) right->Print();
+	// для устранения зацикливания при рекурсивном выводе
+	if (getObjType() != TYPE_STRUCTOBJ && right != nullptr) right->Print();
 	if (left != nullptr) left->Print();
 }
 
@@ -122,11 +134,23 @@ Tree* Tree::SemInclude(TypeLex a, DATA_TYPE dt, OBJECT_TYPE ot)
 	b->data = nullptr;					// set data
 	curr->SetLeft(b);
 	curr = curr->left;
-	if (dt == TYPE_STRUCTTYPE) return SemIncludeBlock();
+	if (dt == TYPE_STRUCTTYPE) return SemIncludeRightBlock();
 	return curr;
 }
 
-Tree* Tree::SemIncludeBlock()
+Tree* Tree::SemIncludeStructObj(TypeLex a, Tree* baseStruct) {
+	Node* b = new Node;
+	memcpy(b->id, a, strlen(a) + 1);	// set id
+	b->dataType = TYPE_STRUCTTYPE;		// set data type
+	b->objectType = TYPE_STRUCTOBJ;		// set obj type
+	b->data = nullptr;					// set data
+	curr->SetLeft(b);
+	curr = curr->left;
+	curr->right = baseStruct;
+	return curr;
+}
+
+Tree* Tree::SemIncludeRightBlock()
 {
 	Tree* returnNode = curr;
 	Node* blockNode = new Node();
@@ -134,6 +158,16 @@ Tree* Tree::SemIncludeBlock()
 	curr->SetRight(blockNode);
 	curr = curr->right;
 	return returnNode;
+}
+
+Tree* Tree::SemIncludeLeftBlock()
+{
+	//Tree* returnNode = curr;
+	Node* blockNode = new Node();
+	memcpy(blockNode->id, "Block", 5);
+	curr->SetLeft(blockNode);
+	curr = curr->left;
+	return curr;
 }
 
 void Tree::SemSetType(Tree* addr, DATA_TYPE t)
@@ -148,6 +182,23 @@ Tree* Tree::SemGetNode(TypeLex a)
 	return v;
 }
 
+Tree* Tree::SemGetStruct(TypeLex a) 
+{	
+	Tree* v = FindUp(a);
+	if (v == nullptr) sc->PrintError("Такой структуры не существует!", a);
+	return v;
+}
+
+Tree* Tree::SemGetStructObject(TypeLex a)
+{
+	Tree* v = FindUp(a);
+	if (v == nullptr) {
+		v = FindRightLeft(a);
+		if (v == nullptr) sc->PrintError("Объект структуры не существует!", a);
+	}
+	return v;
+}
+
 int Tree::CheckUniqueID(TypeLex a)
 {
 	if (FindUpOneLevel(curr, a)) return -1;
@@ -156,7 +207,7 @@ int Tree::CheckUniqueID(TypeLex a)
 
 int Tree::CheckSaveTypes(DATA_TYPE t1, DATA_TYPE t2)
 {
-	// Преобразование целых типов (Будет доработано в ЛР 9)
+	// Преобразование целых типов (Будет доработано в Интерпретации)
 	if (t1 == t2) return 0;
 	if ((t1 == TYPE_INTEGER && t2 == TYPE_SHORTINT) ||
 		(t1 == TYPE_SHORTINT && t2 == TYPE_INTEGER)) {
@@ -167,7 +218,7 @@ int Tree::CheckSaveTypes(DATA_TYPE t1, DATA_TYPE t2)
 
 int Tree::CheckSummandTypes(DATA_TYPE t1, DATA_TYPE t2)
 {
-	// Проверка типов для сложения и вычитания (Будет доработано в ЛР 9)
+	// Проверка типов для сложения и вычитания (Будет доработано в Интерпретации)
 	if ((t1 == TYPE_INTEGER || t1 == TYPE_SHORTINT || t1 == TYPE_LONGINT) &&
 		(t2 == TYPE_INTEGER || t2 == TYPE_SHORTINT || t2 == TYPE_LONGINT)) {
 		return 0;
@@ -177,25 +228,29 @@ int Tree::CheckSummandTypes(DATA_TYPE t1, DATA_TYPE t2)
 
 int Tree::CheckMultiplierTypes(DATA_TYPE t1, DATA_TYPE t2)
 {
-	// Проверка типов для * / % (Будет доработано в ЛР 9)
+	// Проверка типов для * / % (Будет доработано в Интерпретации)
 	return CheckSummandTypes(t1, t2);
-}
+} 
 
 int Tree::CheckEqualityTypes(DATA_TYPE t1, DATA_TYPE t2)
 {
-	// (Будет доработано в ЛР 9)
+	// (Будет доработано в Интерпретации)
 	return (t1 == t2) ? 0 : -1;
 }
 
 int Tree::CheckComparisonTypes(DATA_TYPE t1, DATA_TYPE t2)
 {
-	// (Будет доработано в ЛР 9)
+	// (Будет доработано в Интерпретации)
 	return (t1 == t2) ? 0 : -1;
 }
 
-int Tree::CheckStructAccess(TypeLex structField)
+int Tree::CheckStructAccess(Tree* _struct, TypeLex structField)
 {
-	// (Будет доработано в ЛР 9)
+	if (FindRightLeft(_struct->right, structField) == nullptr) {
+		char* str = new char{};
+		strcat(strcat(strcat(str, "Структура <"), _struct->getID()), "> не имеет такого поля!");
+		sc->PrintError(str, structField);
+	}
 	return 0;
 }
 
@@ -203,11 +258,4 @@ int Tree::CheckVisibility(TypeLex a)
 {
 	if (FindUp(a)) return 0;
 	sc->PrintError("Идентификатор не определен!", a);
-}
-
-int Tree::CheckInit(TypeLex a)
-{
-	Tree* node = SemGetNode(a);
-	if (node && node->n && !node->n->flagInit) return -1;
-	return 0;
 }
